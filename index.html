@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0c0a08">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VintageCam">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Vintage Camera Studio</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Shutter flash -->
+  <div id="flash" class="flash-overlay" aria-hidden="true"></div>
+
+  <!-- Film grain UI overlay -->
+  <div class="ui-grain" aria-hidden="true"></div>
+
+  <!-- ── VIEWFINDER (fills entire screen) ── -->
+  <main class="viewfinder" role="main">
+
+    <!-- Hidden video source -->
+    <video id="video" autoplay muted playsinline webkit-playsinline aria-hidden="true"></video>
+
+    <!-- Single filtered canvas -->
+    <canvas id="main-canvas" aria-label="Camera preview with vintage filter"></canvas>
+
+    <!-- Corner brackets -->
+    <div class="corner corner-tl" aria-hidden="true"></div>
+    <div class="corner corner-tr" aria-hidden="true"></div>
+    <div class="corner corner-bl" aria-hidden="true"></div>
+    <div class="corner corner-br" aria-hidden="true"></div>
+
+    <!-- Camera name watermark — live region -->
+    <div class="cam-name-overlay" aria-live="polite">
+      <div class="cno-inner">
+        <span class="cno-label">NOW SHOOTING</span>
+        <span id="cam-name-big" class="cno-name">Golden Hour</span>
+        <span id="cam-cat-tag" class="cno-cat">Warm &amp; Aesthetic</span>
+      </div>
+    </div>
+
+    <!-- Mode indicator -->
+    <div id="mode-indicator" class="mode-indicator live" aria-live="polite">
+      <span class="mode-dot" aria-hidden="true"></span>
+      <span id="mode-text">LIVE</span>
+    </div>
+
+    <!-- Permission error state -->
+    <div id="permission-error" class="perm-error hidden" role="alert">
+      <div class="perm-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </div>
+      <p class="perm-title">Camera Access Needed</p>
+      <p class="perm-sub">Allow camera in your browser, then tap below.</p>
+      <button id="retry-camera-btn" class="perm-btn">Enable Camera</button>
+    </div>
+
+  </main>
+
+  <!-- ── TOP BAR ── -->
+  <header class="top-bar">
+    <div class="tb-brand">
+      <span class="tb-logo">VC</span>
+      <span class="tb-title">VINTAGE CAM</span>
+    </div>
+    <div class="tb-actions">
+      <button id="random-btn" class="tb-btn" aria-label="Random preset" title="Lucky Shot (R)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
+          <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
+        </svg>
+        <span>Random</span>
+      </button>
+      <button id="flip-btn" class="tb-btn" aria-label="Flip camera">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
+          <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+        </svg>
+        <span>Flip</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── BOTTOM PANEL ── -->
+  <div class="bottom-panel">
+
+    <!-- Shutter row -->
+    <div class="shutter-row">
+
+      <!-- Upload -->
+      <label class="side-btn" for="file-input" aria-label="Upload photo" title="Upload photo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+        </svg>
+        <span>Upload</span>
+      </label>
+
+      <!-- Shutter -->
+      <button id="capture-btn" class="shutter-btn" aria-label="Capture photo (Space)">
+        <div class="shutter-ring">
+          <div class="shutter-inner"></div>
+        </div>
+      </button>
+
+      <!-- Camera toggle -->
+      <button id="mode-toggle-btn" class="side-btn" aria-label="Switch camera / back to live">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span>Camera</span>
+      </button>
+
+    </div>
+
+    <!-- ── CAMERA SELECTOR ── -->
+    <div class="selector-panel">
+
+      <!-- Category Tabs with sliding indicator -->
+      <div class="cat-tabs-wrapper">
+        <div class="cat-tabs" id="cat-tabs" role="tablist" aria-label="Filter by camera type">
+          <button class="cat-tab active" data-category="all" role="tab" aria-selected="true">All</button>
+          <button class="cat-tab" data-category="Warm &amp; Aesthetic" role="tab" aria-selected="false">Warm</button>
+          <button class="cat-tab" data-category="Instant Camera" role="tab" aria-selected="false">Instant</button>
+          <button class="cat-tab" data-category="Y2K Digicam" role="tab" aria-selected="false">Y2K</button>
+          <button class="cat-tab" data-category="Film" role="tab" aria-selected="false">Film</button>
+        </div>
+        <!-- Magnetic sliding indicator -->
+        <div class="cat-indicator" id="cat-indicator" aria-hidden="true"></div>
+      </div>
+
+      <!-- Camera cards — horizontally scrollable -->
+      <div class="camera-cards-scroll" id="preset-list" role="listbox" aria-label="Camera presets"></div>
+
+    </div>
+
+  </div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="file-input" accept="image/*" aria-hidden="true">
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/presets.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/tabs.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#0d0d0d"/>
+
+  <!-- Camera body -->
+  <rect x="72" y="172" width="368" height="228" rx="36" fill="#1a1a1a" stroke="#d4a85a" stroke-width="10"/>
+
+  <!-- Lens outer ring -->
+  <circle cx="256" cy="286" r="88" fill="#111" stroke="#d4a85a" stroke-width="10"/>
+  <!-- Lens inner -->
+  <circle cx="256" cy="286" r="66" fill="#0a0a0a" stroke="#333" stroke-width="6"/>
+  <!-- Lens glass sheen -->
+  <circle cx="256" cy="286" r="48" fill="#0d0d0d"/>
+  <circle cx="236" cy="266" r="14" fill="rgba(212,168,90,0.18)"/>
+  <!-- Aperture center -->
+  <circle cx="256" cy="286" r="20" fill="#d4a85a" opacity="0.85"/>
+
+  <!-- Viewfinder bump on top -->
+  <rect x="178" y="140" width="156" height="44" rx="14" fill="#1a1a1a" stroke="#d4a85a" stroke-width="8"/>
+
+  <!-- Flash indicator dot -->
+  <circle cx="140" cy="216" r="12" fill="#d4a85a" opacity="0.7"/>
+
+  <!-- Film counter window -->
+  <rect x="360" y="216" width="42" height="26" rx="6" fill="#111" stroke="#444" stroke-width="3"/>
+  <text x="381" y="234" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="#d4a85a">36</text>
+</svg>

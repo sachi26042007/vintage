@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VintageCam Studio — Redesign Handover</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0b09; --bg2: #181410; --bg3: #221d18;
+    --border: rgba(200,148,58,0.2); --amber: #c8943a; --amber-lt: #e0b060;
+    --cream: #f0e6cc; --muted: rgba(240,230,204,0.5);
+    --code-bg: #0a0806; --font-display: 'Bebas Neue',sans-serif;
+    --font-mono: 'DM Mono',monospace; --font-ui: 'DM Sans',sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--cream); font-family: var(--font-ui); font-size: 14px; line-height: 1.7; }
+  .page { max-width: 740px; margin: 0 auto; padding: 56px 24px 80px; }
+
+  /* Header */
+  .doc-header { text-align: center; margin-bottom: 56px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber); margin-bottom: 12px; }
+  .doc-title { font-family: var(--font-display); font-size: 52px; letter-spacing: 0.06em; color: var(--cream); }
+  .doc-title em { color: var(--amber-lt); font-style: normal; }
+  .doc-sub { color: var(--muted); font-size: 13px; margin-top: 8px; }
+
+  /* Sections */
+  .section { margin-bottom: 52px; }
+  h2 { font-family: var(--font-display); font-size: 28px; letter-spacing: 0.06em; color: var(--cream); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--amber); margin: 22px 0 10px; }
+  p { color: var(--muted); margin-bottom: 12px; }
+
+  /* Steps */
+  .steps { list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 10px; }
+  .steps li { counter-increment: s; display: flex; gap: 12px; align-items: flex-start; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  .steps li::before { content: counter(s); min-width: 24px; height: 24px; background: var(--amber); color: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .steps li span { color: var(--muted); font-size: 13px; }
+  .steps li strong { color: var(--cream); }
+
+  /* Code */
+  pre { background: var(--code-bg); border: 1px solid var(--border); padding: 16px 18px; border-radius: 10px; font-family: var(--font-mono); font-size: 12px; line-height: 1.7; overflow-x: auto; margin: 10px 0; color: #d4c4a0; }
+  code { font-family: var(--font-mono); background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: var(--amber-lt); border: 1px solid var(--border); }
+
+  /* File tree */
+  .file-tree { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; font-family: var(--font-mono); font-size: 12px; line-height: 2.0; }
+  .file-tree .folder { color: var(--amber); }
+  .file-tree .file { color: #b0d8a8; }
+  .file-tree .note { color: #4a4030; font-size: 11px; }
+  .file-tree .new { color: var(--amber-lt); }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
+  th { text-align: left; padding: 7px 12px; background: var(--bg2); border-bottom: 2px solid var(--border); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--muted); vertical-align: top; }
+  td:first-child { font-family: var(--font-mono); color: var(--cream); font-size: 12px; }
+  tr:last-child td { border-bottom: none; }
+
+  /* Callout */
+  .callout { background: var(--bg2); border-left: 3px solid var(--amber); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0; }
+  .callout p { margin: 0; font-size: 13px; }
+  .callout strong { color: var(--cream); }
+
+  /* Badge pills */
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .badge { padding: 4px 12px; border-radius: 100px; border: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; }
+  .badge.new { background: rgba(200,148,58,0.15); border-color: var(--amber); color: var(--amber-lt); }
+  .badge.same { background: var(--bg2); color: var(--muted); }
+
+  /* Compat */
+  .compat { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .compat-item { display: flex; align-items: center; gap: 6px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; font-size: 12px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot.ok { background: #70d870; }
+  .dot.warn { background: var(--amber); }
+
+  .divider { text-align: center; color: var(--border); font-size: 20px; letter-spacing: 0.4em; margin: 44px 0; }
+
+  footer { text-align: center; color: var(--muted); font-size: 11px; font-family: var(--font-mono); margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="doc-header">
+    <p class="eyebrow">Project Handover — Redesigned UI</p>
+    <h1 class="doc-title">VINTAGE<em>CAM</em> STUDIO</h1>
+    <p class="doc-sub">Complete guide to the new single-view design with magnetic camera selector</p>
+  </header>
+
+  <!-- WHAT CHANGED -->
+  <section class="section">
+    <h2>What Changed in This Redesign</h2>
+    <p>The UI has been completely rebuilt. Here is a summary of every change vs the original version.</p>
+
+    <div class="badge-row">
+      <span class="badge new">✦ New file</span>
+      <span class="badge same">Unchanged</span>
+    </div>
+
+    <table>
+      <tr><th>Area</th><th>Before</th><th>After</th></tr>
+      <tr><td>Camera view</td><td>Split-screen: raw video + filtered canvas side-by-side</td><td>Single full-screen filtered canvas only — cleaner and more immersive</td></tr>
+      <tr><td>Filter selector</td><td>Small filmstrip at bottom with icon + short name</td><td>Scrollable cards with colour swatch strip, emoji icon, and full camera name</td></tr>
+      <tr><td>Category tabs</td><td>Plain pills with no animation</td><td>Magnetic sliding indicator animates between categories on hover and click</td></tr>
+      <tr><td>Camera name</td><td>Small badge overlay (bottom-left)</td><td>Large Bebas Neue display type: "NOW SHOOTING / Camera Name / Category" — cinematic watermark feel</td></tr>
+      <tr><td>Categories</td><td>All · Instant · Y2K · Film</td><td>All · Warm · Instant · Y2K · Film (new Warm &amp; Aesthetic category added)</td></tr>
+      <tr><td>Presets count</td><td>9 presets</td><td>15 presets (6 new Warm &amp; Aesthetic presets added)</td></tr>
+      <tr><td>Top bar</td><td>Branded header with icon buttons</td><td>Glass-morphism bar fading into the viewfinder — VC logo mark + Random + Flip</td></tr>
+      <tr><td>Typography</td><td>Playfair Display + DM Sans</td><td>Bebas Neue (display) + DM Mono (labels) + DM Sans (body)</td></tr>
+      <tr><td>Colour theme</td><td>Dark espresso + amber</td><td>Same palette, now more consistently applied with CSS variables throughout</td></tr>
+    </table>
+  </section>
+
+  <div class="divider">· · ·</div>
+
+  <!-- FILE STRUCTURE -->
+  <section class="section">
+    <h2>File Structure</h2>
+    <div class="file-tree">
+      <div><span class="folder">vintage-camera-studio/</span></div>
+      <div>&nbsp;&nbsp;<span class="file new">index.html</span>&nbsp;&nbsp;<span class="note">← Rebuilt — new single-view layout</span></div>
+      <div>&nbsp;&nbsp;<span class="file new">styles.css</span>&nbsp;&nbsp;<span class="note">← Rebuilt — Bebas Neue, magnetic tabs, card grid</span></div>
+      <div>&nbsp;&nbsp;<span class="file">manifest.json</span>&nbsp;&nbsp;<span class="note">← Unchanged</span></div>
+      <div>&nbsp;&nbsp;<span class="file">sw.js</span>&nbsp;&nbsp;<span class="note">← Unchanged</span></div>
+      <div>&nbsp;&nbsp;<span class="file new">HANDOVER.html</span>&nbsp;&nbsp;<span class="note">← This document (updated)</span></div>
+      <div>&nbsp;&nbsp;<span class="folder">js/</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file new">presets.js</span>&nbsp;&nbsp;<span class="note">← Updated: 6 new Warm &amp; Aesthetic presets + swatch colours</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">filters.js</span>&nbsp;&nbsp;<span class="note">← Unchanged — filter pipeline untouched</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file new">app.js</span>&nbsp;&nbsp;<span class="note">← Updated: new DOM ids, card rendering with swatches, name animation</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="file new">tabs.js</span>&nbsp;&nbsp;<span class="note">← New: magnetic sliding indicator logic</span></div>
+      <div>&nbsp;&nbsp;<span class="folder">icons/</span>&nbsp;&nbsp;<span class="note">← Unchanged</span></div>
+    </div>
+  </section>
+
+  <div class="divider">· · ·</div>
+
+  <!-- QUICK START -->
+  <section class="section">
+    <h2>Quick Start</h2>
+    <p>The app is 100% static — no build step, no npm. Camera requires HTTPS or localhost.</p>
+
+    <h3>Option A — Python (recommended)</h3>
+    <ol class="steps">
+      <li><span>Navigate to the project folder in your terminal</span></li>
+      <li><span>Run: <code>python3 -m http.server 8080</code></span></li>
+      <li><span>Open <strong>http://localhost:8080</strong> in your browser</span></li>
+    </ol>
+
+    <h3>Option B — Node.js</h3>
+    <pre>npx serve .</pre>
+
+    <h3>Option C — Deploy as PWA (install on phone)</h3>
+    <ol class="steps">
+      <li><span>Drag the project folder onto <strong>netlify.com/drop</strong></span></li>
+      <li><span>Get a public HTTPS URL</span></li>
+      <li><span>On iPhone Safari: Share → <strong>Add to Home Screen</strong></span></li>
+    </ol>
+
+    <div class="callout"><p><strong>Why HTTPS?</strong> Browser security rules block camera on plain <code>file://</code> URLs. Localhost and HTTPS both work.</p></div>
+  </section>
+
+  <div class="divider">· · ·</div>
+
+  <!-- THE NEW UI -->
+  <section class="section">
+    <h2>How the New UI Works</h2>
+
+    <h3>Single Filtered View</h3>
+    <p>The <code>&lt;video&gt;</code> element is hidden with <code>display:none</code>. Only <code>#main-canvas</code> is displayed, already processed by the full filter pipeline. The user sees only the final filtered image at all times — no raw camera alongside it.</p>
+
+    <h3>Camera Name Watermark</h3>
+    <p>The <code>.cam-name-overlay</code> div sits at the bottom-left of the viewfinder. It contains three lines: a small "NOW SHOOTING" mono label, the large Bebas Neue camera name (e.g. <em>Golden Hour</em>), and the category. When you switch presets, the name fades out and fades back in via a 120ms opacity animation in <code>_updateNameOverlay()</code> in <code>app.js</code>.</p>
+
+    <h3>Magnetic Tabs</h3>
+    <p>The <code>.cat-indicator</code> div is an absolutely-positioned pill that slides over the active category tab. It is controlled by <code>js/tabs.js</code> which reads the tab's bounding rect relative to its wrapper and sets <code>left</code> and <code>width</code> via CSS. The transition uses a spring-like cubic-bezier (<code>cubic-bezier(0.34, 1.56, 0.64, 1)</code>) for the bounce effect. On hover the indicator tracks the mouse; on mouse-leave it snaps back to the active tab.</p>
+
+    <h3>Camera Cards</h3>
+    <p>Each preset card has three elements: a 3-colour <strong>swatch strip</strong> at the top (from <code>preset.swatch</code>), the emoji icon, and the full camera name in DM Sans. The active card gets a golden border and a small amber checkmark badge. Cards scroll horizontally with <code>overflow-x: auto</code> and <code>scrollbar-width: none</code>.</p>
+
+    <h3>Bottom Panel Height</h3>
+    <p>The panel height is controlled by the CSS variable <code>--panel-h</code> (default 200px, 220px on tall screens). The viewfinder's <code>bottom</code> value equals the same variable, so increasing it makes the viewfinder shorter and the panel taller. No JS needed.</p>
+
+  </section>
+
+  <div class="divider">· · ·</div>
+
+  <!-- ADDING PRESETS -->
+  <section class="section">
+    <h2>Adding a New Preset</h2>
+    <p>Open <code>js/presets.js</code> and add a new object to <code>CAMERA_PRESETS</code>:</p>
+    <pre>{
+  id:          'my-cam',             // unique slug, no spaces
+  name:        'My Camera',          // shown as the large watermark name
+  shortName:   'My Camera',          // shown on the card (same or shorter)
+  category:    'Warm &amp; Aesthetic',   // must match a cat-tab data-category
+  icon:        '📷',
+  swatch:      ['#f0c080','#c08040','#804020'],  // 3 hex colours for top strip
+  description: 'Short description for the handover',
+  filters: {
+    temperature:          0.0,   // -1.0 cool → +1.0 warm
+    contrast:             1.0,   // 0.5 flat  → 2.0 punchy
+    saturation:           1.0,   // 0.0 B&amp;W  → 1.6 vivid
+    grain:                0.0,   // 0.0 none  → 1.0 heavy
+    fade:                 0.0,   // 0.0 deep  → 0.6 matte
+    blur:                 0.0,   // 0.0 sharp → 2.0 dreamy
+    vignette:             0.0,   // 0.0 none  → 1.0 heavy
+    chromaticAberration:  0.0,   // 0.0 none  → 3.5 strong
+    gamma:                1.0    // 0.7 dark  → 1.3 bright
+  }
+},</pre>
+
+    <div class="callout"><p><strong>No build step needed.</strong> Save the file, reload the browser — your preset appears immediately in the correct category tab.</p></div>
+
+    <h3>Adding a new category tab</h3>
+    <p>In <code>index.html</code>, add a button inside <code>#cat-tabs</code>:</p>
+    <pre>&lt;button class="cat-tab" data-category="My Category" role="tab" aria-selected="false"&gt;My Cat&lt;/button&gt;</pre>
+    <p>Use the exact same string in your preset's <code>category</code> field. The magnetic indicator will automatically include the new tab.</p>
+  </section>
+
+  <div class="divider">· · ·</div>
+
+  <!-- CUSTOMISING -->
+  <section class="section">
+    <h2>Customising the UI</h2>
+
+    <h3>Colours</h3>
+    <p>All tokens are CSS variables at the top of <code>styles.css</code>:</p>
+    <table>
+      <tr><th>Variable</th><th>Default</th><th>Controls</th></tr>
+      <tr><td>--bg</td><td>#0c0a08</td><td>Main background</td></tr>
+      <tr><td>--amber</td><td>#c8943a</td><td>Primary accent (tab indicator, active card border, shutter ring)</td></tr>
+      <tr><td>--amber-lt</td><td>#e0b060</td><td>Lighter accent (active card name, category name watermark)</td></tr>
+      <tr><td>--cream</td><td>#f0e6cc</td><td>Primary text and shutter button fill</td></tr>
+      <tr><td>--panel</td><td>rgba(14,11,9,0.94)</td><td>Bottom panel glass background</td></tr>
+    </table>
+
+    <h3>Camera Name Font Size</h3>
+    <p>The watermark name uses <code>clamp(28px, 7vw, 42px)</code> in <code>.cno-name</code>. Adjust the three values to make it smaller or larger.</p>
+
+    <h3>Card Width</h3>
+    <p>Cards are fixed at <code>width: 76px</code> in <code>.preset-btn</code>. Change this to make them wider or narrower.</p>
+
+    <h3>Panel Height</h3>
+    <p>Change <code>--panel-h</code> in <code>:root</code> inside <code>styles.css</code>. The viewfinder height adjusts automatically because it uses <code>bottom: var(--panel-h)</code>.</p>
+  </section>
+
+  <div class="divider">· · ·</div>
+
+  <!-- PRESETS TABLE -->
+  <section class="section">
+    <h2>All 15 Presets</h2>
+
+    <h3>Warm &amp; Aesthetic (new — 6 presets)</h3>
+    <table>
+      <tr><th>Preset</th><th>Vibe</th><th>Key filters</th></tr>
+      <tr><td>Golden Hour</td><td>Sunset warmth</td><td>temp +0.42, vignette 0.72, blur 0.60</td></tr>
+      <tr><td>Honey Lomo</td><td>Dreamy amber Lomography</td><td>temp +0.35, saturation 1.22, vignette 0.72</td></tr>
+      <tr><td>Summer '99</td><td>CCD beach memory</td><td>temp +0.38, CA 2.6, gamma bright</td></tr>
+      <tr><td>Tuscany</td><td>Dusty Italian film</td><td>temp +0.28, grain 0.54, fade 0.28</td></tr>
+      <tr><td>Café Kodak</td><td>Warm interior candid</td><td>temp +0.22, grain 0.42, fade 0.24</td></tr>
+      <tr><td>Bronze Age</td><td>Deep amber contrast</td><td>temp +0.30, contrast 1.32, vignette 0.62</td></tr>
+    </table>
+
+    <h3>Instant Camera</h3>
+    <table>
+      <tr><th>Preset</th><th>Vibe</th><th>Key filters</th></tr>
+      <tr><td>Polaroid</td><td>Warm faded classic</td><td>temp +0.14, vignette 0.55, CA 1.4</td></tr>
+      <tr><td>Instax</td><td>Crisp, slightly cool</td><td>temp +0.06, contrast 1.14, saturation 1.1</td></tr>
+    </table>
+
+    <h3>Y2K Digicam</h3>
+    <table>
+      <tr><th>Preset</th><th>Vibe</th><th>Key filters</th></tr>
+      <tr><td>CCD Gold</td><td>Golden elevator selfie</td><td>temp +0.32, CA 2.8, gamma 0.88</td></tr>
+      <tr><td>Canon G9</td><td>Cool sharp digital</td><td>temp −0.07, contrast 1.22, CA 2.4</td></tr>
+      <tr><td>Canon IXUS</td><td>Warm compact, CA fringe</td><td>temp +0.04, contrast 1.20, CA 2.0</td></tr>
+      <tr><td>FinePix F30</td><td>Cool-green vivid</td><td>temp −0.11, saturation 1.14, CA 1.7</td></tr>
+    </table>
+
+    <h3>Film</h3>
+    <table>
+      <tr><th>Preset</th><th>Vibe</th><th>Key filters</th></tr>
+      <tr><td>Kodak Portra</td><td>Warm skin, lifted blacks</td><td>temp +0.20, fade 0.24, blur 0.55</td></tr>
+      <tr><td>Fuji Velvia</td><td>Hyper-saturated, cool</td><td>temp −0.15, saturation 1.18, contrast 1.1</td></tr>
+    </table>
+  </section>
+
+  <div class="divider">· · ·</div>
+
+  <!-- KEYBOARD SHORTCUTS -->
+  <section class="section">
+    <h2>Keyboard Shortcuts</h2>
+    <table>
+      <tr><th>Key</th><th>Action</th></tr>
+      <tr><td>Space</td><td>Capture photo</td></tr>
+      <tr><td>R</td><td>Random preset</td></tr>
+    </table>
+  </section>
+
+  <div class="divider">· · ·</div>
+
+  <!-- BROWSER COMPAT -->
+  <section class="section">
+    <h2>Browser Compatibility</h2>
+    <div class="compat">
+      <div class="compat-item"><span class="dot ok"></span>Chrome Android</div>
+      <div class="compat-item"><span class="dot ok"></span>Safari iOS 14.3+</div>
+      <div class="compat-item"><span class="dot ok"></span>Chrome Desktop</div>
+      <div class="compat-item"><span class="dot ok"></span>Safari Desktop</div>
+      <div class="compat-item"><span class="dot ok"></span>Edge</div>
+      <div class="compat-item"><span class="dot warn"></span>Firefox (no PWA install)</div>
+    </div>
+
+    <h3>Troubleshooting</h3>
+    <table>
+      <tr><th>Problem</th><th>Fix</th></tr>
+      <tr><td>Camera blank</td><td>Needs HTTPS or localhost. Check camera permission in address bar.</td></tr>
+      <tr><td>iOS camera blocked</td><td>Settings → Safari → Camera → Allow</td></tr>
+      <tr><td>Filters slow</td><td>Close other tabs. Heavy grain + blur on old phones may drop frames.</td></tr>
+      <tr><td>Download fails on iOS</td><td>Long-press the canvas and tap "Save to Photos"</td></tr>
+      <tr><td>Tab indicator misaligned</td><td>Happens if CSS doesn't load. Check the Google Fonts import in styles.css — fonts affect text width.</td></tr>
+    </table>
+  </section>
+
+  <footer>
+    Vintage Camera Studio · Redesigned UI · Static PWA · All processing in-browser · No backend required
+  </footer>
+
+</div>
+</body>
+</html>
