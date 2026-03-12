@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   VINTAGE CAMERA STUDIO — Redesigned UI
+   VINTAGE CAMERA STUDIO — Mobile-First UI v2
    Aesthetic: Dark Room Editorial · Bebas Neue · Amber accent
    ═══════════════════════════════════════════════════════════ */
 
@@ -7,236 +7,308 @@
 
 /* ── TOKENS ── */
 :root {
-  --bg:          #0c0a08;
-  --bg2:         #151210;
-  --bg3:         #1e1a16;
-  --panel:       rgba(14,11,9,0.94);
-  --border:      rgba(200,148,58,0.18);
-  --amber:       #c8943a;
-  --amber-lt:    #e0b060;
-  --amber-glow:  rgba(200,148,58,0.35);
-  --cream:       #f0e6cc;
-  --muted:       rgba(240,230,204,0.38);
-  --text:        #f0e6cc;
+  --bg: #0c0a08;
+  --bg2: #151210;
+  --bg3: #1e1a16;
+  --panel: rgba(14, 11, 9, 0.96);
+  --border: rgba(200, 148, 58, 0.18);
+  --amber: #c8943a;
+  --amber-lt: #e0b060;
+  --amber-glow: rgba(200, 148, 58, 0.35);
+  --cream: #f0e6cc;
+  --muted: rgba(240, 230, 204, 0.38);
+  --text: #f0e6cc;
   --font-display: 'Bebas Neue', sans-serif;
-  --font-mono:    'DM Mono', monospace;
-  --font-ui:      'DM Sans', sans-serif;
-  --r-card:       12px;
-  --r-pill:       100px;
-  --panel-h:      200px; /* bottom panel height — used for viewfinder offset */
+  --font-mono: 'DM Mono', monospace;
+  --font-ui: 'DM Sans', sans-serif;
+  --r-card: 12px;
+  --r-pill: 100px;
+
+  /* Portrait panel height */
+  --panel-h: 210px;
+  /* Landscape sidebar width */
+  --panel-w: 160px;
 }
 
 /* ── RESET ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-ui); -webkit-tap-highlight-color: transparent; }
-button { cursor: pointer; background: none; border: none; color: inherit; font: inherit; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+  /* Prevent iOS rubber-band scroll */
+  position: fixed;
+  width: 100%;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  /* Kill ghost tap highlight on all mobile browsers */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* All interactive elements: instant tap, no highlight */
+button,
+label[for] {
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  /* Removes the 300ms tap delay on mobile */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
 
 /* ── FLASH ── */
 .flash-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: #fff; opacity: 0; pointer-events: none;
-  transition: opacity 0.08s ease;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.06s ease;
 }
-.flash-overlay.active { opacity: 0.92; }
 
-/* ── GRAIN ── */
-.ui-grain {
-  position: fixed; inset: 0; z-index: 1; pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  background-size: 150px 150px;
-  opacity: 0.6;
+.flash-overlay.active {
+  opacity: 0.95;
 }
+
+/* ── LIGHT LEAK (Dazz Cam feature) ── */
+/*
+  Logic: A gradient sweeps from left → right with amber/orange hues.
+  Triggered by adding .active class via JS on shutter press.
+  It layers ABOVE the canvas but BELOW the UI controls.
+*/
+.light-leak {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(135deg,
+      rgba(255, 140, 0, 0.0) 0%,
+      rgba(255, 180, 60, 0.55) 25%,
+      rgba(220, 90, 20, 0.45) 50%,
+      rgba(255, 200, 80, 0.3) 75%,
+      rgba(255, 140, 0, 0.0) 100%);
+  mix-blend-mode: screen;
+  transition: opacity 0.05s ease;
+}
+
+.light-leak.active {
+  opacity: 1;
+  animation: leak-sweep 0.45s ease-out forwards;
+}
+
+@keyframes leak-sweep {
+  0% {
+    opacity: 0.9;
+    transform: translateX(-100%) skewX(-12deg);
+  }
+
+  60% {
+    opacity: 0.8;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(110%) skewX(-12deg);
+  }
+}
+
+/* ── ANIMATED FILM GRAIN (Dazz Cam feature) ── */
+/*
+  Logic: SVG feTurbulence generates fractal noise.
+  JS reseeds the baseFrequency every few frames via a data-seed attribute,
+  making it flicker like real silver-halide film grain.
+  The grain sits above the canvas but below controls (z-index 2).
+*/
+.ui-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: 0.65;
+  /* JS will animate between multiple grain backgrounds */
+  animation: grain-flicker 0.12s steps(1) infinite;
+}
+
+@keyframes grain-flicker {
+  0% {
+    background-position: 0 0;
+  }
+
+  20% {
+    background-position: -40px -80px;
+  }
+
+  40% {
+    background-position: 80px 40px;
+  }
+
+  60% {
+    background-position: -80px 20px;
+  }
+
+  80% {
+    background-position: 40px -40px;
+  }
+}
+
+/* ════════════════════════════════════════════════
+   PORTRAIT LAYOUT  (default — mobile-first)
+   ════════════════════════════════════════════════ */
 
 /* ── VIEWFINDER ── */
+/*
+  The viewfinder fills from top to (screen - panel-h).
+  Canvas inside it is always absolute-inset, GPU composited.
+*/
 .viewfinder {
   position: fixed;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   bottom: var(--panel-h);
   overflow: hidden;
   background: #000;
 }
 
-#video { display: none; }
+#video {
+  display: none;
+}
 
 #main-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
-}
-
-/* ── CORNER BRACKETS ── */
-.corner {
-  position: absolute; width: 22px; height: 22px; z-index: 4; pointer-events: none;
-  border-color: var(--amber-lt);
-  border-style: solid;
-  opacity: 0.8;
-}
-.corner-tl { top: 14px; left: 14px;  border-width: 2px 0 0 2px; border-radius: 3px 0 0 0; }
-.corner-tr { top: 14px; right: 14px; border-width: 2px 2px 0 0; border-radius: 0 3px 0 0; }
-.corner-bl { bottom: 14px; left: 14px;  border-width: 0 0 2px 2px; border-radius: 0 0 0 3px; }
-.corner-br { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; border-radius: 0 0 3px 0; }
-
-/* ── CAMERA NAME WATERMARK ── */
-.cam-name-overlay {
-  position: absolute;
-  bottom: 18px; left: 18px;
-  z-index: 5;
-  pointer-events: none;
-}
-.cno-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.cno-label {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--amber);
-  opacity: 0.9;
-}
-.cno-name {
-  font-family: var(--font-display);
-  font-size: clamp(28px, 7vw, 42px);
-  line-height: 1;
-  color: var(--cream);
-  text-shadow: 0 2px 20px rgba(0,0,0,0.8), 0 0 40px rgba(200,148,58,0.3);
-  letter-spacing: 0.03em;
-  transition: opacity 0.25s ease;
-}
-.cno-cat {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--amber-lt);
-  opacity: 0.75;
-  margin-top: 2px;
-}
-
-/* ── MODE INDICATOR ── */
-.mode-indicator {
-  position: absolute;
-  top: 16px; right: 16px;
-  z-index: 5;
-  display: flex; align-items: center; gap: 5px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  padding: 4px 8px;
-  border-radius: var(--r-pill);
-  background: rgba(0,0,0,0.5);
-  border: 1px solid rgba(255,255,255,0.1);
-  backdrop-filter: blur(8px);
-  pointer-events: none;
-}
-.mode-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  animation: pulse-dot 2s ease infinite;
-}
-.mode-indicator.live  .mode-dot { background: #70d870; }
-.mode-indicator.photo .mode-dot { background: var(--amber); animation: none; }
-@keyframes pulse-dot {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.4; transform: scale(0.7); }
-}
-
-/* ── PERMISSION ERROR ── */
-.perm-error {
-  position: absolute; inset: 0; z-index: 8;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px; padding: 32px;
-  background: rgba(12,10,8,0.92);
-  backdrop-filter: blur(12px);
-}
-.perm-error.hidden { display: none; }
-.perm-icon { color: var(--amber); margin-bottom: 6px; }
-.perm-title { font-family: var(--font-display); font-size: 24px; letter-spacing: 0.04em; }
-.perm-sub   { font-size: 13px; color: var(--muted); text-align: center; max-width: 280px; }
-.perm-btn {
-  margin-top: 8px;
-  padding: 10px 28px;
-  background: var(--amber);
-  color: var(--bg);
-  border-radius: var(--r-pill);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
+  /* Canvas drawn via JS to fill; will-change hints GPU layer promotion */
+  will-change: contents;
 }
 
 /* ── TOP BAR ── */
 .top-bar {
   position: fixed;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  padding-top: max(14px, env(safe-area-inset-top));
-  background: linear-gradient(to bottom, rgba(12,10,8,0.85) 0%, transparent 100%);
+  /* Safe area: avoid iPhone notch / Dynamic Island */
+  padding: max(14px, env(safe-area-inset-top)) 18px 14px 18px;
+  background: linear-gradient(to bottom, rgba(12, 10, 8, 0.88) 0%, transparent 100%);
   pointer-events: none;
 }
+
 .tb-brand {
-  display: flex; align-items: center; gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   pointer-events: auto;
 }
+
 .tb-logo {
-  width: 28px; height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 7px;
   background: var(--amber);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--bg);
   letter-spacing: 0.02em;
   line-height: 1;
   padding-top: 2px;
 }
+
 .tb-title {
   font-family: var(--font-display);
   font-size: 18px;
   letter-spacing: 0.12em;
   color: var(--cream);
 }
+
 .tb-actions {
-  display: flex; gap: 8px;
+  display: flex;
+  gap: 8px;
   pointer-events: auto;
 }
+
+/* Touch-friendly top-bar buttons — min 48px hit area */
 .tb-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 48px;
+  padding: 0 14px;
   border-radius: var(--r-pill);
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.52);
   border: 1px solid var(--border);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   font-size: 11px;
   font-family: var(--font-mono);
   letter-spacing: 0.06em;
   color: var(--cream);
   transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  touch-action: manipulation;
 }
-.tb-btn:hover  { background: rgba(200,148,58,0.15); border-color: var(--amber); }
-.tb-btn:active { transform: scale(0.94); }
 
-/* ── BOTTOM PANEL ── */
+.tb-btn:hover {
+  background: rgba(200, 148, 58, 0.15);
+  border-color: var(--amber);
+}
+
+.tb-btn:active {
+  transform: scale(0.92);
+}
+
+/* ── BOTTOM PANEL (portrait) ── */
+/*
+  Panel sits at the bottom of the screen.
+  padding-bottom uses safe-area-inset-bottom so controls
+  are never hidden behind home indicator on iPhone.
+*/
 .bottom-panel {
   position: fixed;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: var(--panel-h);
   z-index: 10;
   background: var(--panel);
   border-top: 1px solid var(--border);
-  backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
   display: flex;
   flex-direction: column;
-  padding-bottom: max(0px, env(safe-area-inset-bottom));
+  /* Home indicator safe area */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ── SHUTTER ROW ── */
@@ -244,53 +316,93 @@ button { cursor: pointer; background: none; border: none; color: inherit; font: 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 32px 6px;
+  padding: 12px 28px 8px;
   flex-shrink: 0;
 }
+
+/* Side buttons (Upload / Camera toggle) — min 48×48 touch target */
 .side-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 64px;
+  min-height: 56px;
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   transition: color 0.15s, transform 0.1s;
+  touch-action: manipulation;
 }
-.side-btn:hover  { color: var(--cream); }
-.side-btn:active { transform: scale(0.9); color: var(--amber); }
 
-/* ── SHUTTER BUTTON ── */
+.side-btn:hover {
+  color: var(--cream);
+}
+
+.side-btn:active {
+  transform: scale(0.9);
+  color: var(--amber);
+}
+
+/* ── SHUTTER BUTTON ──
+   Large centered button — easy to press with thumb.
+   76px outer, 70px ring, 52px inner disc.
+*/
 .shutter-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 66px; height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   background: transparent;
   padding: 0;
-  transition: transform 0.1s;
+  transition: transform 0.08s;
+  touch-action: manipulation;
+  /* Expand tap area beyond the visual circle */
+  -webkit-tap-highlight-color: transparent;
 }
-.shutter-btn:active { transform: scale(0.9); }
+
+.shutter-btn:active {
+  transform: scale(0.88);
+}
+
 .shutter-ring {
-  width: 62px; height: 62px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   border: 3px solid var(--amber-lt);
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 0 16px var(--amber-glow), inset 0 0 8px rgba(200,148,58,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 18px var(--amber-glow), inset 0 0 8px rgba(200, 148, 58, 0.08);
   transition: box-shadow 0.15s, border-color 0.15s;
 }
+
 .shutter-btn:hover .shutter-ring {
-  box-shadow: 0 0 28px var(--amber-glow), 0 0 50px rgba(200,148,58,0.2), inset 0 0 12px rgba(200,148,58,0.12);
+  box-shadow: 0 0 30px var(--amber-glow), 0 0 56px rgba(200, 148, 58, 0.22), inset 0 0 14px rgba(200, 148, 58, 0.12);
   border-color: var(--amber);
 }
+
 .shutter-inner {
-  width: 46px; height: 46px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--cream);
-  box-shadow: 0 0 10px rgba(240,230,204,0.3);
+  box-shadow: 0 0 12px rgba(240, 230, 204, 0.3);
   transition: background 0.15s, transform 0.1s;
 }
-.shutter-btn:hover  .shutter-inner { background: #fff; }
-.shutter-btn:active .shutter-inner { transform: scale(0.88); }
+
+.shutter-btn:hover .shutter-inner {
+  background: #fff;
+}
+
+.shutter-btn:active .shutter-inner {
+  transform: scale(0.85);
+}
 
 /* ── SELECTOR PANEL ── */
 .selector-panel {
@@ -308,20 +420,27 @@ button { cursor: pointer; background: none; border: none; color: inherit; font: 
   flex-shrink: 0;
   margin-bottom: 6px;
 }
+
 .cat-tabs {
   display: flex;
   gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 2px 0 2px;
+  padding: 2px 0;
   position: relative;
   z-index: 2;
+  -webkit-overflow-scrolling: touch;
 }
-.cat-tabs::-webkit-scrollbar { display: none; }
 
+.cat-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tab buttons — min 48px tap target */
 .cat-tab {
   flex-shrink: 0;
-  padding: 5px 14px;
+  padding: 8px 16px;
+  min-height: 36px;
   border-radius: var(--r-pill);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -333,67 +452,100 @@ button { cursor: pointer; background: none; border: none; color: inherit; font: 
   position: relative;
   z-index: 2;
   border: 1px solid transparent;
+  touch-action: manipulation;
 }
-.cat-tab.active { color: var(--cream); }
-.cat-tab:hover:not(.active) { color: rgba(240,230,204,0.65); }
+
+.cat-tab.active {
+  color: var(--cream);
+}
+
+.cat-tab:hover:not(.active) {
+  color: rgba(240, 230, 204, 0.65);
+}
 
 /* Magnetic sliding indicator */
 .cat-indicator {
   position: absolute;
   top: 2px;
   height: calc(100% - 4px);
-  background: rgba(200,148,58,0.18);
+  background: rgba(200, 148, 58, 0.18);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
   pointer-events: none;
   z-index: 1;
   transition: left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-              width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ── CAMERA CARDS SCROLL ── */
+/* ── CAMERA CARDS SCROLL ──
+   Horizontal scroll with snap points for satisfying swipe feel.
+*/
 .camera-cards-scroll {
   display: flex;
-  gap: 8px;
+  gap: 9px;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
-  padding: 4px 16px 8px;
+  padding: 4px 16px 10px;
   flex: 1;
   align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
 }
-.camera-cards-scroll::-webkit-scrollbar { display: none; }
 
-/* ── CAMERA CARD ── */
+.camera-cards-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── CAMERA CARD ──
+   Bigger cards (84px wide) for easier touch selection.
+   scroll-snap-align so each card docks cleanly.
+*/
 .preset-btn {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
-  width: 76px;
+  width: 84px;
+  min-height: 80px;
   border-radius: var(--r-card);
   background: var(--bg3);
   border: 1.5px solid transparent;
   overflow: hidden;
   transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
   position: relative;
-}
-.preset-btn:hover  { transform: translateY(-2px); border-color: rgba(200,148,58,0.35); }
-.preset-btn:active { transform: scale(0.95); }
-.preset-btn.active {
-  border-color: var(--amber);
-  box-shadow: 0 0 14px rgba(200,148,58,0.4), 0 0 0 0px transparent;
+  scroll-snap-align: start;
+  touch-action: manipulation;
 }
 
-/* Swatch strip (colour signature at top of card) */
+.preset-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(200, 148, 58, 0.35);
+}
+
+.preset-btn:active {
+  transform: scale(0.93);
+}
+
+.preset-btn.active {
+  border-color: var(--amber);
+  box-shadow: 0 0 16px rgba(200, 148, 58, 0.45);
+}
+
+/* Swatch strip */
 .pb-swatch {
   width: 100%;
-  height: 7px;
+  height: 10px;
   display: flex;
   border-radius: var(--r-card) var(--r-card) 0 0;
   overflow: hidden;
 }
-.pb-swatch-chunk { flex: 1; }
+
+.pb-swatch-chunk {
+  flex: 1;
+}
 
 /* Card body */
 .pb-body {
@@ -401,13 +553,18 @@ button { cursor: pointer; background: none; border: none; color: inherit; font: 
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 7px 6px 8px;
+  padding: 8px 6px 8px;
   width: 100%;
 }
-.pb-icon { font-size: 18px; line-height: 1; }
+
+.pb-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
 .pb-name {
   font-family: var(--font-ui);
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--cream);
@@ -416,54 +573,455 @@ button { cursor: pointer; background: none; border: none; color: inherit; font: 
   word-break: break-word;
   hyphens: auto;
 }
-.preset-btn.active .pb-name { color: var(--amber-lt); }
+
+.preset-btn.active .pb-name {
+  color: var(--amber-lt);
+}
 
 /* Active check mark */
 .pb-check {
-  width: 14px; height: 14px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   background: var(--amber);
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
   transition: opacity 0.2s;
   margin-top: 1px;
 }
-.preset-btn.active .pb-check { opacity: 1; }
-.pb-check svg { width: 8px; height: 8px; stroke: var(--bg); }
+
+.preset-btn.active .pb-check {
+  opacity: 1;
+}
+
+.pb-check svg {
+  width: 9px;
+  height: 9px;
+  stroke: var(--bg);
+}
+
+/* ── CORNER BRACKETS ── */
+.corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  z-index: 4;
+  pointer-events: none;
+  border-color: var(--amber-lt);
+  border-style: solid;
+  opacity: 0.8;
+}
+
+.corner-tl {
+  top: 14px;
+  left: 14px;
+  border-width: 2px 0 0 2px;
+  border-radius: 3px 0 0 0;
+}
+
+.corner-tr {
+  top: 14px;
+  right: 14px;
+  border-width: 2px 2px 0 0;
+  border-radius: 0 3px 0 0;
+}
+
+.corner-bl {
+  bottom: 14px;
+  left: 14px;
+  border-width: 0 0 2px 2px;
+  border-radius: 0 0 0 3px;
+}
+
+.corner-br {
+  bottom: 14px;
+  right: 14px;
+  border-width: 0 2px 2px 0;
+  border-radius: 0 0 3px 0;
+}
+
+/* ── CAMERA NAME WATERMARK ── */
+.cam-name-overlay {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.cno-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cno-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--amber);
+  opacity: 0.9;
+}
+
+.cno-name {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 7vw, 42px);
+  line-height: 1;
+  color: var(--cream);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8), 0 0 40px rgba(200, 148, 58, 0.3);
+  letter-spacing: 0.03em;
+  transition: opacity 0.25s ease;
+}
+
+.cno-cat {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber-lt);
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+/* ── MODE INDICATOR ── */
+.mode-indicator {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.mode-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: pulse-dot 2s ease infinite;
+}
+
+.mode-indicator.live .mode-dot {
+  background: #70d870;
+}
+
+.mode-indicator.photo .mode-dot {
+  background: var(--amber);
+  animation: none;
+}
+
+@keyframes pulse-dot {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+
+/* ── PERMISSION ERROR ── */
+.perm-error {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  background: rgba(12, 10, 8, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.perm-error.hidden {
+  display: none;
+}
+
+.perm-icon {
+  color: var(--amber);
+  margin-bottom: 6px;
+}
+
+.perm-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  letter-spacing: 0.04em;
+}
+
+.perm-sub {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  max-width: 280px;
+}
+
+.perm-btn {
+  margin-top: 8px;
+  padding: 14px 32px;
+  min-height: 48px;
+  background: var(--amber);
+  color: var(--bg);
+  border-radius: var(--r-pill);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  touch-action: manipulation;
+}
 
 /* ── TOAST ── */
 .toast {
   position: fixed;
   bottom: calc(var(--panel-h) + 16px);
-  left: 50%; transform: translateX(-50%) translateY(10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
   z-index: 100;
-  background: rgba(12,10,8,0.92);
+  background: rgba(12, 10, 8, 0.92);
   border: 1px solid var(--border);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: var(--cream);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.08em;
-  padding: 8px 18px;
+  padding: 9px 20px;
   border-radius: var(--r-pill);
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
-.toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 
 /* ── FILE INPUT ── */
-#file-input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
-
-/* ── RESPONSIVE ── */
-@media (min-height: 800px) {
-  :root { --panel-h: 220px; }
+#file-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
 }
-@media (max-height: 600px) {
-  :root { --panel-h: 175px; }
-  .shutter-btn { width: 56px; height: 56px; }
-  .shutter-ring { width: 52px; height: 52px; }
-  .shutter-inner { width: 38px; height: 38px; }
-  .cno-name { font-size: 26px; }
+
+/* ════════════════════════════════════════════════
+   LANDSCAPE LAYOUT
+   ════════════════════════════════════════════════
+
+   Strategy: When the phone is landscape, the bottom panel
+   becomes a RIGHT SIDEBAR. Controls remain vertical and
+   always upright — just like a native camera app.
+   The viewfinder expands to fill all remaining space.
+
+   Why this works better than orientation.lock():
+   - orientation.lock() needs Fullscreen API + PWA install
+   - iOS Safari restricts it even in installed PWAs
+   - CSS layout swap works in ALL browsers instantly
+*/
+@media screen and (orientation: landscape) {
+  :root {
+    --panel-h: 0px;
+    /* unused in landscape */
+  }
+
+  /* Viewfinder: fill entire screen except the right sidebar */
+  .viewfinder {
+    top: 0;
+    left: 0;
+    right: var(--panel-w);
+    bottom: 0;
+  }
+
+  /* Bottom panel becomes right sidebar */
+  .bottom-panel {
+    top: 0;
+    right: 0;
+    left: auto;
+    bottom: 0;
+    width: var(--panel-w);
+    height: 100%;
+    border-top: none;
+    border-left: 1px solid var(--border);
+    /* Vertical flex column */
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Shutter column: stack items vertically, centered */
+  .shutter-row {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 20px 0 12px;
+  }
+
+  /* Side buttons: row → small icon-only in landscape */
+  .side-btn {
+    flex-direction: row;
+    gap: 6px;
+    min-width: 48px;
+    min-height: 48px;
+    font-size: 8px;
+  }
+
+  .side-btn span {
+    display: none;
+  }
+
+  /* hide text label in tight sidebar */
+
+  /* Selector panel: vertical scroll in landscape */
+  .selector-panel {
+    overflow: hidden;
+  }
+
+  /* Category tabs: wrap or scroll vertically */
+  .cat-tabs-wrapper {
+    padding: 0 8px;
+    margin-bottom: 4px;
+  }
+
+  .cat-tabs {
+    flex-wrap: wrap;
+    gap: 3px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .cat-tab {
+    padding: 5px 10px;
+    font-size: 9px;
+  }
+
+  /* Cards scroll vertically in sidebar */
+  .camera-cards-scroll {
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-snap-type: y proximity;
+    padding: 4px 8px 10px;
+    gap: 7px;
+  }
+
+  .preset-btn {
+    width: 100%;
+    flex-direction: row;
+    min-height: 52px;
+    border-radius: 10px;
+  }
+
+  .pb-swatch {
+    width: 8px;
+    height: 100%;
+    flex-direction: column;
+    border-radius: var(--r-card) 0 0 var(--r-card);
+  }
+
+  .pb-body {
+    flex-direction: row;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .pb-icon {
+    font-size: 18px;
+  }
+
+  .pb-name {
+    text-align: left;
+    font-size: 10px;
+  }
+
+  /* Top bar: adjust for no longer overlapping sidebar */
+  .top-bar {
+    right: var(--panel-w);
+  }
+
+  /* Toast: position above the viewfinder bottom */
+  .toast {
+    bottom: 20px;
+    right: calc(var(--panel-w) + 16px);
+    left: auto;
+    transform: translateY(10px);
+  }
+
+  .toast.visible {
+    transform: translateY(0);
+  }
+}
+
+/* ════════════════════════════════════════════════
+   HEIGHT BREAKPOINTS
+   ════════════════════════════════════════════════ */
+
+/* Tall phones (≥ 800px) */
+@media (min-height: 800px) and (orientation: portrait) {
+  :root {
+    --panel-h: 230px;
+  }
+
+  .shutter-btn {
+    width: 82px;
+    height: 82px;
+  }
+
+  .shutter-ring {
+    width: 76px;
+    height: 76px;
+  }
+
+  .shutter-inner {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* Short phones / sq aspect (landscape portrait, < 500px height) */
+@media (max-height: 500px) {
+  .shutter-btn {
+    width: 60px;
+    height: 60px;
+  }
+
+  .shutter-ring {
+    width: 56px;
+    height: 56px;
+  }
+
+  .shutter-inner {
+    width: 40px;
+    height: 40px;
+  }
+
+  .cno-name {
+    font-size: 22px;
+  }
+
+  :root {
+    --panel-w: 140px;
+  }
 }
