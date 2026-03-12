@@ -93,18 +93,10 @@ const App = {
     const isLandscape = window.innerWidth > window.innerHeight;
     document.body.dataset.orientation = isLandscape ? 'landscape' : 'portrait';
 
-    /* Resize canvas to match current stream track settings */
-    if (this.stream) {
-      const track = this.stream.getVideoTracks()[0];
-      if (track) {
-        const { width, height } = track.getSettings();
-        if (width && height) {
-          const s = width > 1280 ? 1280 / width : 1;
-          this.canvas.width = Math.round(width * s);
-          this.canvas.height = Math.round(height * s);
-        }
-      }
-    }
+    /* Resize canvas to match viewfinder display size.
+       This ensures the canvas pixels map 1:1 to screen pixels,
+       so CSS never has to stretch or squish it. */
+    this._setCanvasToViewfinder();
 
     /* Tab indicator also needs to reposition after reflow */
     setTimeout(() => {
@@ -113,17 +105,89 @@ const App = {
     }, 50);
   },
 
+  /* ══════════════════════════════════════════════
+     CANVAS SIZING
+     ══════════════════════════════════════════════
+
+     Logic:
+       We set the canvas's internal pixel dimensions to match
+       the viewfinder's CSS layout size exactly.
+       This means CSS never has to scale the canvas element,
+       eliminating one source of distortion.
+
+       devicePixelRatio is intentionally NOT multiplied here —
+       we don't want a 3× canvas for pixel-filter performance reasons.
+       The viewfinder CSS pixel size gives us enough resolution.
+  */
+  _setCanvasToViewfinder() {
+    const vf = this.canvas.parentElement;
+    if (!vf) return;
+    const rect = vf.getBoundingClientRect();
+    const w = Math.round(rect.width) || window.innerWidth;
+    const h = Math.round(rect.height) || window.innerHeight;
+    if (w > 0 && h > 0) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+    }
+  },
+
+  /* ══════════════════════════════════════════════
+     COVER-CROP DRAW
+     ══════════════════════════════════════════════
+
+     Logic:
+       Standard ctx.drawImage(src, 0, 0, cw, ch) stretches
+       the source to fill the destination — the same as
+       object-fit: fill — causing facial distortion.
+
+       We instead implement object-fit: cover:
+         scale = max(canvasW/srcW, canvasH/srcH)
+           → the LARGER ratio ensures both axes are covered
+         Then centre-crop the source:
+           ox = (srcW - canvasW/scale) / 2  ← pixels cropped from each side
+           oy = (srcH - canvasH/scale) / 2
+
+       The 6-argument form of drawImage:
+         ctx.drawImage(src, sx, sy, sw, sh, dx, dy, dw, dh)
+       lets us specify exactly which rectangle of the source
+       to draw, and where to put it in the destination.
+
+       For front-camera (selfie mirror) we apply a horizontal
+       flip via ctx.scale(-1, 1) before drawing.
+  */
+  _drawCover(source, srcW, srcH) {
+    const { canvas, ctx } = this;
+    const cw = canvas.width;
+    const ch = canvas.height;
+    if (!cw || !ch || !srcW || !srcH) return;
+
+    const scale = Math.max(cw / srcW, ch / srcH);
+    const ox = (srcW - cw / scale) / 2;
+    const oy = (srcH - ch / scale) / 2;
+    const ow = cw / scale;
+    const oh = ch / scale;
+
+    ctx.drawImage(source, ox, oy, ow, oh, 0, 0, cw, ch);
+  },
+
   /* ── CAMERA ── */
   async startCamera() {
     this._stopCamera();
     document.getElementById('permission-error').classList.add('hidden');
 
     try {
+      /* Request explicit 16:9 aspect ratio.
+         Without this, some devices (especially front cameras) return
+         a 4:3 stream, which then gets stretched into the 16:9 viewfinder
+         causing the concave / fish-eye distortion on faces.
+         The cover-crop draw below handles mismatches gracefully,
+         but matching at source reduces cropping. */
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: this.facingMode },
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
+          aspectRatio: { ideal: 16 / 9 }
         },
         audio: false
       });
@@ -134,11 +198,11 @@ const App = {
       });
       await this.video.play();
 
-      const vw = this.video.videoWidth || 1280;
-      const vh = this.video.videoHeight || 720;
-      const s = vw > 1280 ? 1280 / vw : 1;
-      this.canvas.width = Math.round(vw * s);
-      this.canvas.height = Math.round(vh * s);
+      /* Size the canvas to match the viewfinder's layout dimensions.
+         We do NOT use the raw video stream size here — that would make
+         the canvas aspect ratio depend on the stream, causing CSS to
+         stretch/squish it to fit the viewfinder container. */
+      this._setCanvasToViewfinder();
 
       this.isLiveCamera = true;
       this.uploadedImage = null;
@@ -150,6 +214,7 @@ const App = {
     } catch (err) {
       console.error('[Camera]', err);
       document.getElementById('permission-error').classList.remove('hidden');
+      this._setCanvasToViewfinder();
       this._startRenderLoop();
     }
   },
@@ -202,17 +267,25 @@ const App = {
 
     if (isLiveCamera) {
       if (video.readyState < 2) return;
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+
       if (this.facingMode === 'user') {
+        /* Flip horizontally for selfie mirror before cover-drawing.
+           Translate to right edge, scale X by -1, then draw normally. */
         ctx.save();
         ctx.translate(w, 0);
         ctx.scale(-1, 1);
-        ctx.drawImage(video, 0, 0, w, h);
+        this._drawCover(video, vw, vh);
         ctx.restore();
       } else {
-        ctx.drawImage(video, 0, 0, w, h);
+        /* _drawCover crops video centre to fill canvas —
+           no stretch, no distortion, correct proportions. */
+        this._drawCover(video, vw, vh);
       }
     } else if (uploadedImage) {
-      ctx.drawImage(uploadedImage, 0, 0, w, h);
+      /* Same cover logic for uploaded photos */
+      this._drawCover(uploadedImage, uploadedImage.naturalWidth, uploadedImage.naturalHeight);
     } else {
       return;
     }
@@ -375,9 +448,12 @@ const App = {
     img.onload = () => {
       this._stopCamera();
       this._stopRenderLoop();
-      const s = img.width > 1280 ? 1280 / img.width : 1;
-      this.canvas.width = Math.round(img.width * s);
-      this.canvas.height = Math.round(img.height * s);
+
+      /* Size canvas to the viewfinder display area — NOT the image dimensions.
+         The _drawCover() call in _renderFrame handles centre-cropping the image
+         to fill the canvas correctly, without distortion. */
+      this._setCanvasToViewfinder();
+
       this.isLiveCamera = false;
       this.uploadedImage = img;
       this._setModeIndicator('PHOTO', false);
